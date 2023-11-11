@@ -191,7 +191,7 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('maze0.png')
+    img = cv2.imread('maze1.png')
     
     # -- build empty graph
     Exgraph = nx.Graph()
@@ -207,13 +207,13 @@ if __name__ == "__main__":
 
     # -- add nodes
     for i in range(len(nodeList)):
-        nodeCoords = (Exgraph.nodes[nodeList[i]]['x'], Exgraph.nodes[nodeList[i]]['y'])
+        nodeCoords = (Exgraph.nodes[nodeList[i]]['y'], Exgraph.nodes[nodeList[i]]['x'])
         cv2.circle(img, nodeCoords, 4, (255, 0, 0), -1)
 
     for i in range(len(edgeList)):
         
         currentEdge = edgeList[i]
-        cv2.line(img, (Exgraph.nodes[currentEdge[0]]['x'], Exgraph.nodes[currentEdge[0]]['y']), (Exgraph.nodes[currentEdge[1]]['x'], Exgraph.nodes[currentEdge[1]]['y']), (0, 0, 255), 1)
+        cv2.line(img, (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
 
 
     # -- Display image
