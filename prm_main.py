@@ -95,7 +95,7 @@ def check_legal_edge(currentNode, neighborNode):
 
 
 # -- Checks if legal edges can be added to a node with any of the other nodes in the graph
-def add_legal_edges(Exgraph, newNode, radius = 40):
+def add_legal_edges(Exgraph, newNode, radius):
 
     nodeList = list(Exgraph)
     newNodeCoords = [0, 0]
@@ -126,11 +126,12 @@ def add_legal_edges(Exgraph, newNode, radius = 40):
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100):
+def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100, radius = 40):
     
     graph_unfinished = True
 
     largestNode = getLargestNode(Exgraph)
+    newMax = largestNode + sampleNum
 
     # -- Run a while loop until the graph has the number of nodes specified by sampleNum
     while graph_unfinished:
@@ -152,13 +153,14 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100):
         Exgraph.add_node(largestNode)
         Exgraph.nodes[largestNode]['x'] = newSample[0]
         Exgraph.nodes[largestNode]['y'] = newSample[1]
+        #print(Exgraph)
 
         # -- add legal edges to sample
-        add_legal_edges(Exgraph, (largestNode))
+        add_legal_edges(Exgraph, largestNode, radius)
 
         # -- check if graph is finished
         #print(Exgraph)
-        if len(Exgraph.nodes) == sampleNum:
+        if len(Exgraph.nodes) == newMax:
             graph_unfinished = False
 
     return Exgraph
@@ -191,7 +193,7 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('maze1.png')
+    img = cv2.imread('maze5.png')
     
     # -- build empty graph
     Exgraph = nx.Graph()
@@ -199,7 +201,11 @@ if __name__ == "__main__":
     imgHeight, imgWidth, channels = img.shape
 
     # -- Run PRM algorithm
-    Exgraph = prm(Exgraph, imgHeight, imgWidth)
+    Exgraph = prm(Exgraph, imgHeight, imgWidth, 300, 100)
+    print(Exgraph)
+
+    Exgraph = prm(Exgraph, imgHeight, imgWidth, 300, 100)
+    print(Exgraph)
 
     # -- Display graph
     nodeList = list(Exgraph.nodes)
@@ -220,6 +226,7 @@ if __name__ == "__main__":
     cv2.imshow('My Image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
 
 
 
