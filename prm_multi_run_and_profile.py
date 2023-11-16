@@ -126,15 +126,23 @@ def add_legal_edges(Exgraph, newNode, radius, img):
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
+def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40):
     
-    graph_unfinished = True
 
     largestNode = getLargestNode(Exgraph)
     newMax = largestNode + sampleNum
 
+    # -- Declare imgDelta outside of if to fix scope potentially?
+    imgDelta = imgNext
+    
+    # -- Create a subtracted image if this isn't the first map
+    if imgLast is not None:
+        imgDelta = cv2.subtract(imgNext, imgLast)
+        imgDelta = erode_image(imgDelta)
+
     # -- Run a while loop until the graph has the number of nodes specified by sampleNum
-    while graph_unfinished:
+
+    for i in range(sampleNum):
 
         # -- Generate a sample
         legal_sample = False
@@ -143,25 +151,33 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
         while not legal_sample:
             
             newSample = generateSample(imgHeight, imgWidth)
-            color = img[int(newSample[0]), int(newSample[1])]
+            color = imgDelta[int(newSample[0]), int(newSample[1])]
 
             if not np.all(color == 0):
                 legal_sample = True
-        
+
+        # -- Check to see if neighborhood needs to be pruned
+        neighborhood = get_neighborhood(Exgraph, newSample, 30)
+        overPopNeighborhood = neighborhood_to_big(neighborhood)
+
+        if overPopNeighborhood:
+            newSample = get_average_neighbor(Exgraph, neighborhood)
+            for i in range(len(neighborhood)):
+                Exgraph.remove_node(neighborhood[i])
+
         # -- Add legal node to graph
         largestNode = largestNode + 1
         Exgraph.add_node(largestNode)
         Exgraph.nodes[largestNode]['x'] = newSample[0]
         Exgraph.nodes[largestNode]['y'] = newSample[1]
+
         #print(Exgraph)
 
         # -- add legal edges to sample
-        add_legal_edges(Exgraph, largestNode, radius, img)
+        add_legal_edges(Exgraph, largestNode, radius, imgNext)
 
         # -- check if graph is finished
         #print(Exgraph)
-        if len(Exgraph.nodes) == newMax:
-            graph_unfinished = False
 
     return Exgraph
 
@@ -182,7 +198,41 @@ def profileEnd(start, path):
         f.write('\n')
         f.write(str(total))
         
+# -- This function builds a list of "neighbors" for a given node
+def get_neighborhood(graph, newSample, radius):
 
+    nodeList = list(graph.nodes)
+    neighborhood = []
+
+
+    for i in range(len(nodeList)):
+        if math.dist([graph.nodes[nodeList[i]]['x'], graph.nodes[nodeList[i]]['y']], newSample) <= radius:
+            neighborhood.append(nodeList[i])
+
+    return neighborhood
+
+# -- This function checks if the neighborhood is too large
+def neighborhood_to_big(neighborhood, popLimit = 2):
+
+    if len(neighborhood) > popLimit:
+        return True
+    else:
+        return False
+
+# -- Get the average neighbor of a neighborhood
+def get_average_neighbor(graph, neighborhood):
+    
+    sumX = 0
+    sumY = 0
+
+    for i in range(len(neighborhood)):
+        sumX = sumX + graph.nodes[neighborhood[i]]['x']
+        sumY = sumY + graph.nodes[neighborhood[i]]['y']
+
+    averageX = int(sumX / len(neighborhood))
+    averageY = int(sumY / len(neighborhood))
+
+    return [averageX, averageY]
 
 
 
@@ -233,9 +283,14 @@ if __name__ == "__main__":
         for j in range(5):
             # -- map 1
             start_timer = time.time()
-            map_data = erode_image(img[j])
-            Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 30, 20)
-            profileEnd(start_timer, 'PRM_profile_data/PRM_profile_sequence' + str(j + 1) + '_n100.txt')
+            imgLast = None
+        
+            if j > 0:
+                imgLast = img[j-1]
+
+            # -- Run PRM algorithm
+            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j], imgLast,  20, 70)
+            profileEnd(start_timer, 'PRM_profile_data/PRM_delta_average_profile_sequence' + str(j + 1) + '_n100.txt')
             print(Exgraph)
 
 

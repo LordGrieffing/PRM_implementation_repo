@@ -120,6 +120,42 @@ def add_legal_edges(Exgraph, newNode, radius, img):
 
     return 
 
+# -- This function builds a list of "neighbors" for a given node
+def get_neighborhood(graph, newSample, radius):
+
+    nodeList = list(graph.nodes)
+    neighborhood = []
+
+
+    for i in range(len(nodeList)):
+        if math.dist([graph.nodes[nodeList[i]]['x'], graph.nodes[nodeList[i]]['y']], newSample) <= radius:
+            neighborhood.append(nodeList[i])
+
+    return neighborhood
+
+# -- This function checks if the neighborhood is too large
+def neighborhood_to_big(neighborhood, popLimit = 2):
+
+    if len(neighborhood) > popLimit:
+        return True
+    else:
+        return False
+
+# -- Get the average neighbor of a neighborhood
+def get_average_neighbor(graph, neighborhood):
+    
+    sumX = 0
+    sumY = 0
+
+    for i in range(len(neighborhood)):
+        sumX = sumX + graph.nodes[neighborhood[i]]['x']
+        sumY = sumY + graph.nodes[neighborhood[i]]['y']
+
+    averageX = int(sumX / len(neighborhood))
+    averageY = int(sumY / len(neighborhood))
+
+    return [averageX, averageY]
+
 
 
 
@@ -145,7 +181,7 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
 
     if (imgDelta == imgNext).all():
         print("Image Delta and the Next Image are the same")
-    while graph_unfinished:
+    for i in range(sampleNum):
 
         # -- Generate a sample
         legal_sample = False
@@ -159,7 +195,16 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             if not np.all(color == 0):
                 legal_sample = True
 
-        
+        # -- Check to see if neighborhood needs to be pruned
+        neighborhood = get_neighborhood(Exgraph, newSample, 30)
+        overPopNeighborhood = neighborhood_to_big(neighborhood)
+
+        if overPopNeighborhood:
+            newSample = get_average_neighbor(Exgraph, neighborhood)
+            for i in range(len(neighborhood)):
+                Exgraph.remove_node(neighborhood[i])
+                print(Exgraph)
+
         # -- Add legal node to graph
         largestNode = largestNode + 1
         Exgraph.add_node(largestNode)
@@ -173,8 +218,6 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
 
         # -- check if graph is finished
         #print(Exgraph)
-        if len(Exgraph.nodes) == newMax:
-            graph_unfinished = False
 
     return Exgraph
 
@@ -235,7 +278,7 @@ if __name__ == "__main__":
             imgLast = img[i-1]
 
         # -- Run PRM algorithm
-        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  20, 30)
+        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  20, 70)
         print(Exgraph)
 
 
