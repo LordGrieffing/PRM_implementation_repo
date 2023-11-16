@@ -10,24 +10,115 @@ import math
 from scipy.optimize import fsolve
 import time
 
+def erode_image(map_array, filter_size = 1):
+    """ Erodes the image to reduce the chances of robot colliding with the wall
+    each pixel is 0.05 meter. The robot is 30 cm wide, that is 0.3 m. Half is
+    0.15 m. If we increase the walls by 20 cm on either side, the kernel should
+    be 40 cm wide. 0.4 / 0.05 = 8
+    """
+    kernel = np.ones((filter_size,filter_size), np.uint8)
+    eroded_img = cv2.erode(map_array, kernel, iterations = 1)
+    return eroded_img
+
+def mySubtract(imgLast, imgNext, Height, Width):
+    for i in range(Height):
+        for j in range(Width):
+            if np.all(imgLast[i, j] == 255):
+                imgNext[i, j] = [0, 0, 0]
+
+            elif np.all(imgLast[i, j] == 0):
+                imgNext[i, j] = [0, 0, 0]
+
+    return imgNext
 
 
 
-g = nx.Graph()
-
-g.add_node(1)
-g.add_node(2)
-g.add_node(3)
 
 
+img = []
 
-g.add_edge(1, 2)
-g.add_edge(2, 3)
+for i in range(5):
+    img.append(cv2.imread('map_sequences/map_sequence_' + str(i + 1) + '.png'))
+
+imgHeight, imgWidth, channels = img[0].shape
+
+
+subtracted_img = mySubtract(img[0], img[1], imgHeight, imgWidth)
+
+cv2.imshow('My Image',subtracted_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
 
-edgeList = list(g.edges)
-print(g)
-print(edgeList)
 
-print(g.nodes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+imgLast = None
+for i in range(5):
+
+    if i > 0:
+        imgLast = img[i-1]
+        subtracted = cv2.subtract(img[i], imgLast)
+        subtracted = erode_image(subtracted)
+        cv2.imwrite("map_sequences/delta_example_" + str(i + 1) + ".png", subtracted)
+
+    else:
+        map_data = erode_image(img[i])
+        cv2.imwrite("map_sequences/delta_example_" + str(i + 1) + ".png", map_data)
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
