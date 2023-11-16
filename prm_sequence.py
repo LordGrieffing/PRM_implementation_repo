@@ -147,6 +147,7 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
 
             if not np.all(color == 0):
                 legal_sample = True
+
         
         # -- Add legal node to graph
         largestNode = largestNode + 1
@@ -165,6 +166,7 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
 
     return Exgraph
 
+
 def erode_image(map_array, filter_size = 9):
     """ Erodes the image to reduce the chances of robot colliding with the wall
     each pixel is 0.05 meter. The robot is 30 cm wide, that is 0.3 m. Half is
@@ -174,16 +176,7 @@ def erode_image(map_array, filter_size = 9):
     kernel = np.ones((filter_size,filter_size), np.uint8)
     eroded_img = cv2.erode(map_array, kernel, iterations = 1)
     return eroded_img
-
-def profileEnd(start, path):
-    end = time.time()
-    total = end - start
-    with open(path, 'a') as f:
-        f.write('\n')
-        f.write(str(total))
         
-
-
 
 
 
@@ -209,8 +202,6 @@ def profileEnd(start, path):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    #img = cv2.imread('maze5.png')
-
     img = []
 
     for i in range(5):
@@ -222,44 +213,34 @@ if __name__ == "__main__":
     # In this situation all the maps are the same resolution so it doesn't matter which you grab the resolution from
     imgHeight, imgWidth, channels = img[0].shape
 
-    # -- Loop over each sample 100 times sequentially
-    # -- Like 1, 2, 3, 4 ,5 then again 1, 2, 3, 4, 5 repeat 100 times
-    for i in range(100):
+
+    for i in range(5):
         
-        # -- Reset the graph
+        # -- Erode the map
+        map_data = erode_image(img[i])
 
-        Exgraph = nx.Graph()
-
-        for j in range(5):
-            # -- map 1
-            start_timer = time.time()
-            map_data = erode_image(img[j])
-            Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 30, 20)
-            profileEnd(start_timer, 'PRM_profile_data/PRM_profile_sequence' + str(j + 1) + '_n100.txt')
-            print(Exgraph)
+        # -- Run PRM algorithm
+        Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 30, 20)
+        print(Exgraph)
 
 
-    '''
-    # -- Display graph
-    nodeList = list(Exgraph.nodes)
-    edgeList = list(Exgraph.edges)
+        # -- Display graph
+        nodeList = list(Exgraph.nodes)
+        edgeList = list(Exgraph.edges)
 
-    # -- add nodes
-    for i in range(len(nodeList)):
-        nodeCoords = (Exgraph.nodes[nodeList[i]]['y'], Exgraph.nodes[nodeList[i]]['x'])
-        cv2.circle(img, nodeCoords, 4, (255, 0, 0), -1)
+        # -- add nodes
+        for j in range(len(nodeList)):
+            nodeCoords = (Exgraph.nodes[nodeList[j]]['y'], Exgraph.nodes[nodeList[j]]['x'])
+            cv2.circle(img[i], nodeCoords, 4, (255, 0, 0), -1)
 
-    for i in range(len(edgeList)):
+        for j in range(len(edgeList)):
+            
+            currentEdge = edgeList[j]
+            cv2.line(img[i], (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
         
-        currentEdge = edgeList[i]
-        cv2.line(img, (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
+        
+        cv2.imwrite("map_sequences/graphed_sequences/PRM_lifetime_example_" + str(i + 1) + ".png", img[i])
 
-
-    # -- Display image
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    '''
     
 
 

@@ -81,7 +81,7 @@ def check_if_neighbor(currentNode, neighborNode, radius):
         return False
 
 # -- Checks if a legal edge can be built between two nodes    
-def check_legal_edge(currentNode, neighborNode):
+def check_legal_edge(currentNode, neighborNode, img):
     line = []
     line = bresenham_line(int(currentNode[0]), int(currentNode[1]), int(neighborNode[0]), int(neighborNode[1]))
     lineValid = True
@@ -95,7 +95,7 @@ def check_legal_edge(currentNode, neighborNode):
 
 
 # -- Checks if legal edges can be added to a node with any of the other nodes in the graph
-def add_legal_edges(Exgraph, newNode, radius):
+def add_legal_edges(Exgraph, newNode, radius, img):
 
     nodeList = list(Exgraph)
     newNodeCoords = [0, 0]
@@ -113,7 +113,7 @@ def add_legal_edges(Exgraph, newNode, radius):
         neighbor = check_if_neighbor(newNodeCoords, currentNodeCoords, radius)
 
         if neighbor:
-            legal_edge = check_legal_edge(newNodeCoords, currentNodeCoords)
+            legal_edge = check_legal_edge(newNodeCoords, currentNodeCoords, img)
 
             if legal_edge:
                 Exgraph.add_edge(newNode, nodeList[i])
@@ -126,7 +126,7 @@ def add_legal_edges(Exgraph, newNode, radius):
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100, radius = 40):
+def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
     
     graph_unfinished = True
 
@@ -156,7 +156,7 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100, radius = 40):
         #print(Exgraph)
 
         # -- add legal edges to sample
-        add_legal_edges(Exgraph, largestNode, radius)
+        add_legal_edges(Exgraph, largestNode, radius, img)
 
         # -- check if graph is finished
         #print(Exgraph)
@@ -165,7 +165,16 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100, radius = 40):
 
     return Exgraph
 
-        
+
+def erode_image(map_array, filter_size = 9):
+    """ Erodes the image to reduce the chances of robot colliding with the wall
+    each pixel is 0.05 meter. The robot is 30 cm wide, that is 0.3 m. Half is
+    0.15 m. If we increase the walls by 20 cm on either side, the kernel should
+    be 40 cm wide. 0.4 / 0.05 = 8
+    """
+    kernel = np.ones((filter_size,filter_size), np.uint8)
+    eroded_img = cv2.erode(map_array, kernel, iterations = 1)
+    return eroded_img
         
 
 
@@ -193,18 +202,19 @@ def prm(Exgraph, imgHeight, imgWidth, sampleNum = 100, radius = 40):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('map_sequences/map_sequence_1.png')
+    img = cv2.imread('maze5.png')
     
     # -- build empty graph
     Exgraph = nx.Graph()
 
     imgHeight, imgWidth, channels = img.shape
 
-    # -- Run PRM algorithm
-    Exgraph = prm(Exgraph, imgHeight, imgWidth, 300, 100)
-    print(Exgraph)
 
-    Exgraph = prm(Exgraph, imgHeight, imgWidth, 300, 100)
+    # -- Erode the map
+    map_data = erode_image(img)
+
+    # -- Run PRM algorithm
+    Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 300, 100)
     print(Exgraph)
 
     # -- Display graph
@@ -221,11 +231,12 @@ if __name__ == "__main__":
         currentEdge = edgeList[i]
         cv2.line(img, (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
 
+    cv2.imwrite('maze5_graphed.png', img)
 
     # -- Display image
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.imshow('My Image',img)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
     
 
 
