@@ -159,19 +159,21 @@ def get_average_neighbor(graph, neighborhood):
 
     return [averageX, averageY]
 
+# -- subtract two images in a way that I need want
 def mySubtract(imgLast, imgNext, Height, Width):
+    
+    temp_Next = np.copy(imgNext)
     for i in range(Height):
         for j in range(Width):
-            if np.all(imgLast[i, j] == 254):
-                imgNext[i, j] = 0
+            if imgLast[i, j] == 254:
+                temp_Next[i, j] = 0
 
 
-
-    return imgNext
+    return temp_Next
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40, frontiersample = 5):
+def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40, frontierSample = 5):
     
     graph_unfinished = True
 
@@ -183,12 +185,18 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
     
     # -- Create a subtracted image if this isn't the first map
     if imgLast is not None:
-        imgDelta = mySubtract(imgNext, imgLast, imgHeight, imgWidth)
+        imgDelta = mySubtract(imgLast, imgNext, imgHeight, imgWidth)
     
-    imgDelta = erode_image(imgDelta)
+    # -- Erode the image to account for robot size
+    kernel = np.ones((3,3),np.uint8)
+    imgDelta = cv2.erode(imgDelta, kernel, iterations = 1)
+
+
 
     # -- Run a while loop until the graph has the number of nodes specified by sampleNum
-    while graph_unfinished:
+
+    
+    for i in range(sampleNum):
 
         # -- Generate a sample
         legal_sample = False
@@ -199,27 +207,39 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             newSample = generateSample(imgHeight, imgWidth)
             color = imgDelta[int(newSample[0]), int(newSample[1])]
 
+
             if np.all(color == 254):
                 legal_sample = True
 
-        
+        '''
+        # -- Check to see if neighborhood needs to be pruned
+        neighborhood = get_neighborhood(Exgraph, newSample, 30)
+        overPopNeighborhood = neighborhood_to_big(neighborhood)
+
+        if overPopNeighborhood:
+            newSample = get_average_neighbor(Exgraph, neighborhood)
+            for i in range(len(neighborhood)):
+                Exgraph.remove_node(neighborhood[i])
+                print(Exgraph.nodes)
+
+        '''
+
         # -- Add legal node to graph
         largestNode = largestNode + 1
         Exgraph.add_node(largestNode)
         Exgraph.nodes[largestNode]['x'] = newSample[0]
         Exgraph.nodes[largestNode]['y'] = newSample[1]
+
         #print(Exgraph)
 
         # -- add legal edges to sample
-        add_legal_edges(Exgraph, largestNode, radius, img)
+        add_legal_edges(Exgraph, largestNode, radius, imgNext)
 
         # -- check if graph is finished
         #print(Exgraph)
-        if len(Exgraph.nodes) == newMax:
-            graph_unfinished = False
 
     # -- generate and add frontier cells
-    frontier_img = ff.get_frontier_image(img)
+    frontier_img = ff.get_frontier_image(imgNext)
     legal_sample = False
     frontier_finished = False
     newSample = [0,0]
@@ -232,10 +252,10 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
         for i in range(imgHeight):
             for j in range(imgWidth):
 
-                if img[i, j] == 254:
+                if imgNext[i, j] == 254:
                     frontier.append([i, j])
 
-        for i in range(frontiersample):
+        for i in range(frontierSample):
             tempFront = rd.randrange(0, len(frontier))
             newSample = frontier[tempFront]
             # -- Add legal node to graph
@@ -247,13 +267,7 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             # -- add legal edges to sample
             add_legal_edges(Exgraph, largestNode, radius, frontier_img)
 
-
         frontier_finished = True
-
-
-
-        
-
 
     return Exgraph
 
@@ -321,13 +335,13 @@ if __name__ == "__main__":
             imgLast = None
         
             if j > 0:
-                imgLast = img[i-1]
+                imgLast = img[j-1]
             # -- map 1
             start_timer = time.time()
 
 
             # -- Run PRM algorithm
-            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j], imgLast,  10, 70)
+            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j], imgLast,  5, 90)
             profileEnd(start_timer, 'PRM_profile_data/PRM_frontier_delta_average_profile_sequence' + str(j + 1) + '_n100.txt')
             print(Exgraph)
 

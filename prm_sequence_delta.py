@@ -337,7 +337,7 @@ if __name__ == "__main__":
 
         end = time.time()
         total = end - start
-        print("It took:" + str(total) + " seconds")
+        print("It took: " + str(total) + " seconds")
         print(Exgraph)
 
 
