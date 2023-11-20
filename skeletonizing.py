@@ -175,9 +175,11 @@ if __name__ == "__main__":
 
     img = []
 
-    for i in range(8):
-        img.append(cv2.imread('resources/map' + str(i + 1) + '.pgm', 0))
+    for i in range(1):
+        img.append(cv2.imread('maze5.png'))
     
+
+    '''
     for j in range(8):
 
         for i in range(100):
@@ -195,41 +197,48 @@ if __name__ == "__main__":
             graph = run_skeleton_input(skeleton)
             profileEnd(start, "Skeleton_profile_data/Skeleton_profile_Desktop_map" + str(j + 1) + "_n100.txt")
             print(graph)
-
+    '''
     
 
-    '''
-    map_data = erode_image(img)
-    map_binary = convert_to_binary(map_data)
+    
+    for i in range(1):
 
-    skeleton = data_skeleton(map_binary)
-    #cv2.imshow('My Image', skeleton)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+        img[i] = cv2.copyMakeBorder(src=img[i], top=15, bottom=15, left=15, right=15, borderType=cv2.BORDER_CONSTANT) 
+        map_data = erode_image(img[i])
+        map_binary = convert_to_binary(map_data)
 
-    graph = run_skeleton_input(skeleton)
+        skeleton = data_skeleton(map_binary)
+        #cv2.imshow('My Image', skeleton)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+
+        graph = run_skeleton_input(skeleton)
+        print(graph)
+        #img[i] = cv2.cvtColor(img[i], cv2.COLOR_GRAY2BGR)
 
 
-    # -- print the graph
-    # -- Display graph
-    nodeList = list(graph.nodes)
-    edgeList = list(graph.edges)
+        # -- print the graph
+        # -- Display graph
+        nodeList = list(graph.nodes)
+        edgeList = list(graph.edges)
 
-    # -- add nodes
-    for j in range(len(nodeList)):
-        nodeCoords = (graph.nodes[nodeList[j]]['pts'][0][1], graph.nodes[nodeList[j]]['pts'][0][0])
-        cv2.circle(img, nodeCoords, 4, (255, 0, 0), -1)
+        # -- add nodes
+        for j in range(len(nodeList)):
+            nodeCoords = (graph.nodes[nodeList[j]]['pts'][0][1], graph.nodes[nodeList[j]]['pts'][0][0])
+            cv2.circle(img[i], nodeCoords, 4, (255, 0, 0), -1)
 
-    for j in range(len(edgeList)):
-                
-        currentEdge = edgeList[j]
-        cv2.line(img, (graph.nodes[currentEdge[0]]['pts'][0][1], graph.nodes[currentEdge[0]]['pts'][0][0]), (graph.nodes[currentEdge[1]]['pts'][0][1], graph.nodes[currentEdge[1]]['pts'][0][0]), (0, 0, 255), 1)
+        for j in range(len(edgeList)):
+                    
+            currentEdge = edgeList[j]
+            cv2.line(img[i], (graph.nodes[currentEdge[0]]['pts'][0][1], graph.nodes[currentEdge[0]]['pts'][0][0]), (graph.nodes[currentEdge[1]]['pts'][0][1], graph.nodes[currentEdge[1]]['pts'][0][0]), (0, 0, 255), 1)
 
-    cv2.imshow('My Image', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    #cv2.imwrite("skeleton_map_sequence__eroded_1.png", skeleton)
-    '''
+        #cv2.imshow('My Image', img[i])
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+        #cv2.imwrite("map_sequences/skeleton_graphs/skeleton_map_eroded_" +str(i + 1) + ".png", img[i])
+        cv2.imwrite("map_sequences/skeleton_graphs/maze5.png", img[i])
+    
+    
 
 
 

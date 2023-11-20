@@ -20,34 +20,36 @@ def erode_image(map_array, filter_size = 1):
     eroded_img = cv2.erode(map_array, kernel, iterations = 1)
     return eroded_img
 
-def mySubtract(imgLast, imgNext, Height, Width):
-    for i in range(Height):
-        for j in range(Width):
-            if np.all(imgLast[i, j] == 254):
-                imgNext[i, j] = 0
-
-
-
-    return imgNext
 
 
 
 
-
-img1 = cv2.imread("resources/map1.pgm",0)
-img2 = cv2.imread("resources/map2.pgm",0)
-
-imgHeight, imgWidth = img1.shape
+img = []
 
 
-subtracted_img = mySubtract(img1, img2, imgHeight, imgWidth)
-subtracted_img = erode_image(subtracted_img)
+img.append(cv2.imread('resources/map2.pgm'))
+img.append(cv2.imread('map_sequences/graphed_sequences/PRM_lifetime_delta_example_2.png'))
+img.append(cv2.imread('map_sequences/skeleton_graphs/skeleton_map_eroded_2.png'))
 
-subtracted_img = cv2.cvtColor(subtracted_img, cv2.COLOR_GRAY2BGR)
+imgHeight, imgWidth, channels = img[0].shape
+print("Image Height: " + str(imgHeight))
+print("Image Width: " + str(imgWidth))
 
-cv2.imshow('My Image',subtracted_img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+
+
+
+for i in range(3):
+    img[i] = img[i][160:390, 150: 380]
+
+cv2.imwrite('map_sequences/cropped_images/cropped_map2.png', img[0])
+cv2.imwrite('map_sequences/cropped_images/cropped_PRM_map2.png', img[1])
+cv2.imwrite('map_sequences/cropped_images/cropped_Skeleton_map2.png', img[2])
+
+
+
+#cv2.imshow('My Image', img[0])
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 
 
 
