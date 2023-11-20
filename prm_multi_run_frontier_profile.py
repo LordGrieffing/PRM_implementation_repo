@@ -10,6 +10,9 @@ import math
 from scipy.optimize import fsolve
 import time
 
+# -- Local Imports
+import find_frontier_cell as ff
+
 
 
 def generateSample(height, width):
@@ -87,7 +90,7 @@ def check_legal_edge(currentNode, neighborNode, img):
     lineValid = True
 
     for j in range(len(line)):
-        if np.all(img[line[j][0], line[j][1]] == 0):
+        if img[line[j][0], line[j][1]] == 0 or img[line[j][0], line[j][1]] == 205:
             lineValid = False
             break
 
@@ -126,7 +129,7 @@ def add_legal_edges(Exgraph, newNode, radius, img):
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
+def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40, frontiersample = 5):
     
     graph_unfinished = True
 
@@ -146,8 +149,8 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
             color = img[int(newSample[0]), int(newSample[1])]
 
             if np.all(color == 254):
-                print(color)
                 legal_sample = True
+
         
         # -- Add legal node to graph
         largestNode = largestNode + 1
@@ -164,6 +167,43 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
         if len(Exgraph.nodes) == newMax:
             graph_unfinished = False
 
+    # -- generate and add frontier cells
+    frontier_img = ff.get_frontier_image(img)
+    legal_sample = False
+    frontier_finished = False
+    newSample = [0,0]
+
+    while not frontier_finished:
+        print("Frontier in progress...")
+
+        # -- Generate a sample inside of the frontier 
+        frontier = []
+        for i in range(imgHeight):
+            for j in range(imgWidth):
+
+                if img[i, j] == 254:
+                    frontier.append([i, j])
+
+        for i in range(frontiersample):
+            tempFront = rd.randrange(0, len(frontier))
+            newSample = frontier[tempFront]
+            # -- Add legal node to graph
+            largestNode = largestNode + 1
+            Exgraph.add_node(largestNode)
+            Exgraph.nodes[largestNode]['x'] = newSample[0]
+            Exgraph.nodes[largestNode]['y'] = newSample[1]
+
+            # -- add legal edges to sample
+            add_legal_edges(Exgraph, largestNode, radius, frontier_img)
+
+
+        frontier_finished = True
+
+
+
+        
+
+
     return Exgraph
 
 
@@ -177,8 +217,12 @@ def erode_image(map_array, filter_size = 9):
     eroded_img = cv2.erode(map_array, kernel, iterations = 1)
     return eroded_img
         
-
-
+def profileEnd(start, path):
+    end = time.time()
+    total = end - start
+    with open(path, 'a') as f:
+        f.write('\n')
+        f.write(str(total))
 
 
 
@@ -203,41 +247,34 @@ def erode_image(map_array, filter_size = 9):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('resources/map1.pgm')
+    img = []
+
+    for i in range(8):
+        img.append(cv2.imread('resources/map' + str(i + 1) + '.pgm', 0))
     
     # -- build empty graph
     Exgraph = nx.Graph()
 
-    imgHeight, imgWidth, channels = img.shape
+    # In this situation all the maps are the same resolution so it doesn't matter which you grab the resolution from
+    imgHeight, imgWidth = img[0].shape
 
 
-    # -- Erode the map
-    map_data = erode_image(img)
-
-    # -- Run PRM algorithm
-    Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 5, 100)
-    print(Exgraph)
-
-    # -- Display graph
-    nodeList = list(Exgraph.nodes)
-    edgeList = list(Exgraph.edges)
-
-    # -- add nodes
-    for i in range(len(nodeList)):
-        nodeCoords = (Exgraph.nodes[nodeList[i]]['y'], Exgraph.nodes[nodeList[i]]['x'])
-        cv2.circle(img, nodeCoords, 4, (255, 0, 0), -1)
-
-    for i in range(len(edgeList)):
+    for i in range(100):
         
-        currentEdge = edgeList[i]
-        cv2.line(img, (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
+        # -- Reset the graph
 
-    cv2.imwrite('maze5_graphed.png', img)
+        Exgraph = nx.Graph()
 
-    # -- Display image
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        for j in range(8):
+            # -- map 1
+            start_timer = time.time()
+
+
+            # -- Run PRM algorithm
+            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j],  10, 70)
+            profileEnd(start_timer, 'PRM_profile_data/PRM_frontier_average_profile_sequence' + str(j + 1) + '_n100.txt')
+            print(Exgraph)
+
     
 
 

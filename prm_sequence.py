@@ -10,6 +10,9 @@ import math
 from scipy.optimize import fsolve
 import time
 
+# -- Local Imports
+import find_frontier_cell as ff
+
 
 
 def generateSample(height, width):
@@ -87,7 +90,7 @@ def check_legal_edge(currentNode, neighborNode, img):
     lineValid = True
 
     for j in range(len(line)):
-        if np.all(img[line[j][0], line[j][1]] == 0):
+        if img[line[j][0], line[j][1]] == 0 or img[line[j][0], line[j][1]] == 205:
             lineValid = False
             break
 
@@ -126,7 +129,7 @@ def add_legal_edges(Exgraph, newNode, radius, img):
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
+def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40, frontiersample = 5):
     
     graph_unfinished = True
 
@@ -145,7 +148,7 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
             newSample = generateSample(imgHeight, imgWidth)
             color = img[int(newSample[0]), int(newSample[1])]
 
-            if not np.all(color == 0):
+            if np.all(color == 254):
                 legal_sample = True
 
         
@@ -163,6 +166,43 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40):
         #print(Exgraph)
         if len(Exgraph.nodes) == newMax:
             graph_unfinished = False
+
+    # -- generate and add frontier cells
+    frontier_img = ff.get_frontier_image(img)
+    legal_sample = False
+    frontier_finished = False
+    newSample = [0,0]
+
+    while not frontier_finished:
+        print("Frontier in progress...")
+
+        # -- Generate a sample inside of the frontier 
+        frontier = []
+        for i in range(imgHeight):
+            for j in range(imgWidth):
+
+                if img[i, j] == 254:
+                    frontier.append([i, j])
+
+        for i in range(frontiersample):
+            tempFront = rd.randrange(0, len(frontier))
+            newSample = frontier[tempFront]
+            # -- Add legal node to graph
+            largestNode = largestNode + 1
+            Exgraph.add_node(largestNode)
+            Exgraph.nodes[largestNode]['x'] = newSample[0]
+            Exgraph.nodes[largestNode]['y'] = newSample[1]
+
+            # -- add legal edges to sample
+            add_legal_edges(Exgraph, largestNode, radius, frontier_img)
+
+
+        frontier_finished = True
+
+
+
+        
+
 
     return Exgraph
 
@@ -204,29 +244,32 @@ if __name__ == "__main__":
     # -- import an image and convert it to a binary image
     img = []
 
-    for i in range(5):
-        img.append(cv2.imread('map_sequences/map_sequence_' + str(i + 1) + '.png'))
+    for i in range(8):
+        img.append(cv2.imread('resources/map' + str(i + 1) + '.pgm', 0))
     
     # -- build empty graph
     Exgraph = nx.Graph()
 
     # In this situation all the maps are the same resolution so it doesn't matter which you grab the resolution from
-    imgHeight, imgWidth, channels = img[0].shape
+    imgHeight, imgWidth = img[0].shape
 
 
-    for i in range(5):
+    for i in range(8):
         
         # -- Erode the map
         map_data = erode_image(img[i])
 
         # -- Run PRM algorithm
-        Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 30, 20)
+        Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 20, 40)
         print(Exgraph)
 
 
         # -- Display graph
         nodeList = list(Exgraph.nodes)
         edgeList = list(Exgraph.edges)
+
+        # -- Convert images into color
+        img[i] = cv2.cvtColor(img[i], cv2.COLOR_GRAY2BGR)
 
         # -- add nodes
         for j in range(len(nodeList)):
@@ -239,7 +282,7 @@ if __name__ == "__main__":
             cv2.line(img[i], (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
         
         
-        cv2.imwrite("map_sequences/graphed_sequences/PRM_lifetime_example_" + str(i + 1) + ".png", img[i])
+        cv2.imwrite("map_sequences/graphed_sequences/PRM_lifetime_example_frontier" + str(i + 1) + ".png", img[i])
 
     
 

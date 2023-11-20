@@ -203,7 +203,7 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             newSample = get_average_neighbor(Exgraph, neighborhood)
             for i in range(len(neighborhood)):
                 Exgraph.remove_node(neighborhood[i])
-                print(Exgraph)
+                print(Exgraph.nodes)
 
         # -- Add legal node to graph
         largestNode = largestNode + 1
@@ -278,7 +278,7 @@ if __name__ == "__main__":
             imgLast = img[i-1]
 
         # -- Run PRM algorithm
-        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  20, 70)
+        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  30, 100)
         print(Exgraph)
 
 

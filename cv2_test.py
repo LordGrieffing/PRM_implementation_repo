@@ -23,11 +23,10 @@ def erode_image(map_array, filter_size = 1):
 def mySubtract(imgLast, imgNext, Height, Width):
     for i in range(Height):
         for j in range(Width):
-            if np.all(imgLast[i, j] == 255):
-                imgNext[i, j] = [0, 0, 0]
+            if np.all(imgLast[i, j] == 254):
+                imgNext[i, j] = 0
 
-            elif np.all(imgLast[i, j] == 0):
-                imgNext[i, j] = [0, 0, 0]
+
 
     return imgNext
 
@@ -35,15 +34,12 @@ def mySubtract(imgLast, imgNext, Height, Width):
 
 
 
-img = []
-
-for i in range(5):
-    img.append(cv2.imread('map_sequences/map_sequence_' + str(i + 1) + '.png'))
-
-imgHeight, imgWidth, channels = img[0].shape
+img1 = cv2.imread("resources/map2.pgm",0)
+img2 = cv2.imread("resources/map3.pgm",0)
+imgHeight, imgWidth = img1.shape
 
 
-subtracted_img = mySubtract(img[0], img[1], imgHeight, imgWidth)
+subtracted_img = mySubtract(img1, img2, imgHeight, imgWidth)
 
 cv2.imshow('My Image',subtracted_img)
 cv2.waitKey(0)
