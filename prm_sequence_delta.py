@@ -242,7 +242,7 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
         #print(Exgraph)
 
         # -- generate and add frontier cells
-    frontier_img = ff.get_frontier_image(imgNext)
+    frontier_cells = ff.get_frontier_image(imgNext)
     legal_sample = False
     frontier_finished = False
     newSample = [0,0]
@@ -250,17 +250,9 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
     while not frontier_finished:
         print("Frontier in progress...")
 
-        # -- Generate a sample inside of the frontier 
-        frontier = []
-        for i in range(imgHeight):
-            for j in range(imgWidth):
-
-                if imgNext[i, j] == 254:
-                    frontier.append([i, j])
-
         for i in range(frontierSample):
-            tempFront = rd.randrange(0, len(frontier))
-            newSample = frontier[tempFront]
+            tempFront = rd.randrange(0, len(frontier_cells))
+            newSample = frontier_cells[tempFront]
             # -- Add legal node to graph
             largestNode = largestNode + 1
             Exgraph.add_node(largestNode)
@@ -268,7 +260,7 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             Exgraph.nodes[largestNode]['y'] = newSample[1]
 
             # -- add legal edges to sample
-            add_legal_edges(Exgraph, largestNode, radius, frontier_img)
+            add_legal_edges(Exgraph, largestNode, radius, imgNext)
 
         frontier_finished = True
 

@@ -66,21 +66,21 @@ def get_frontier_image(img, save_temp_images=False):
                     frontier_img[i,j] = 254
 
     # -- change color of frontier cells to a different color
-    for i in range(len(frontier_cells)):
-        img[frontier_cells[i]] = 100
+    #for i in range(len(frontier_cells)):
+        #img[frontier_cells[i]] = 100
 
     # -- dilate and erode the frontier cells to remove noise
-    kernel = np.ones((3,3),np.uint8)
-    frontier_dilated = cv2.dilate(frontier_img,kernel,iterations = 1)
+    #kernel = np.ones((3,3),np.uint8)
+    #frontier_dilated = cv2.dilate(frontier_img,kernel,iterations = 1)
     #frontier_eroded = cv2.erode(frontier_dilated,kernel,iterations = 1)
-    frontier_eroded = frontier_dilated
+    #frontier_eroded = frontier_dilated
     # -- save the frontier image
-    if save_temp_images:
-        cv2.imwrite('map_frontier.png', frontier_img)
-        cv2.imwrite('map_frontier.png', frontier_eroded)
+    #if save_temp_images:
+        #cv2.imwrite('map_frontier.png', frontier_img)
+        #cv2.imwrite('map_frontier.png', frontier_eroded)
     
     # -- return the frontier image
-    return frontier_eroded
+    return frontier_cells
 
 if __name__ == "__main__":
     # -- read the image file
