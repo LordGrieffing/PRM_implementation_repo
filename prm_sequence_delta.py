@@ -10,6 +10,9 @@ import math
 from scipy.optimize import fsolve
 import time
 
+# -- Local imports 
+import find_frontier_cell as ff
+
 
 
 def generateSample(height, width):
@@ -81,13 +84,14 @@ def check_if_neighbor(currentNode, neighborNode, radius):
         return False
 
 # -- Checks if a legal edge can be built between two nodes    
+# -- Checks if a legal edge can be built between two nodes    
 def check_legal_edge(currentNode, neighborNode, img):
     line = []
     line = bresenham_line(int(currentNode[0]), int(currentNode[1]), int(neighborNode[0]), int(neighborNode[1]))
     lineValid = True
 
     for j in range(len(line)):
-        if np.all(img[line[j][0], line[j][1]] == 0):
+        if img[line[j][0], line[j][1]] == 0 or img[line[j][0], line[j][1]] == 205:
             lineValid = False
             break
 
@@ -156,13 +160,25 @@ def get_average_neighbor(graph, neighborhood):
 
     return [averageX, averageY]
 
+# -- subtract two images in a way that I need want
+def mySubtract(imgLast, imgNext, Height, Width):
+    
+    temp_Next = np.copy(imgNext)
+    for i in range(Height):
+        for j in range(Width):
+            if imgLast[i, j] == 254:
+                temp_Next[i, j] = 0
+
+
+    return temp_Next
+
 
 
 
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40):
+def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40, frontierSample = 5):
     
     graph_unfinished = True
 
@@ -174,13 +190,15 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
     
     # -- Create a subtracted image if this isn't the first map
     if imgLast is not None:
-        imgDelta = cv2.subtract(imgNext, imgLast)
-        imgDelta = erode_image(imgDelta)
+        imgDelta = mySubtract(imgLast, imgNext, imgHeight, imgWidth)
+    
+    # -- Erode the image to account for robot size
+    kernel = np.ones((3,3),np.uint8)
+    imgDelta = cv2.erode(imgDelta, kernel, iterations = 1)
 
     # -- Run a while loop until the graph has the number of nodes specified by sampleNum
 
-    if (imgDelta == imgNext).all():
-        print("Image Delta and the Next Image are the same")
+    
     for i in range(sampleNum):
 
         # -- Generate a sample
@@ -192,9 +210,11 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             newSample = generateSample(imgHeight, imgWidth)
             color = imgDelta[int(newSample[0]), int(newSample[1])]
 
-            if not np.all(color == 0):
+
+            if np.all(color == 254):
                 legal_sample = True
 
+        '''
         # -- Check to see if neighborhood needs to be pruned
         neighborhood = get_neighborhood(Exgraph, newSample, 30)
         overPopNeighborhood = neighborhood_to_big(neighborhood)
@@ -204,6 +224,8 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
             for i in range(len(neighborhood)):
                 Exgraph.remove_node(neighborhood[i])
                 print(Exgraph.nodes)
+
+        '''
 
         # -- Add legal node to graph
         largestNode = largestNode + 1
@@ -218,6 +240,37 @@ def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, 
 
         # -- check if graph is finished
         #print(Exgraph)
+
+        # -- generate and add frontier cells
+    frontier_img = ff.get_frontier_image(imgNext)
+    legal_sample = False
+    frontier_finished = False
+    newSample = [0,0]
+
+    while not frontier_finished:
+        print("Frontier in progress...")
+
+        # -- Generate a sample inside of the frontier 
+        frontier = []
+        for i in range(imgHeight):
+            for j in range(imgWidth):
+
+                if imgNext[i, j] == 254:
+                    frontier.append([i, j])
+
+        for i in range(frontierSample):
+            tempFront = rd.randrange(0, len(frontier))
+            newSample = frontier[tempFront]
+            # -- Add legal node to graph
+            largestNode = largestNode + 1
+            Exgraph.add_node(largestNode)
+            Exgraph.nodes[largestNode]['x'] = newSample[0]
+            Exgraph.nodes[largestNode]['y'] = newSample[1]
+
+            # -- add legal edges to sample
+            add_legal_edges(Exgraph, largestNode, radius, frontier_img)
+
+        frontier_finished = True
 
     return Exgraph
 
@@ -258,18 +311,19 @@ def erode_image(map_array, filter_size = 9):
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
     img = []
+    painted_img = []
 
-    for i in range(5):
-        img.append(cv2.imread('map_sequences/map_sequence_' + str(i + 1) + '.png'))
+    for i in range(8):
+        img.append(cv2.imread('resources/map' + str(i + 1) + '.pgm', 0))
     
     # -- build empty graph
     Exgraph = nx.Graph()
 
     # In this situation all the maps are the same resolution so it doesn't matter which you grab the resolution from
-    imgHeight, imgWidth, channels = img[0].shape
+    imgHeight, imgWidth = img[0].shape
 
 
-    for i in range(5):
+    for i in range(8):
         
 
         imgLast = None
@@ -278,7 +332,12 @@ if __name__ == "__main__":
             imgLast = img[i-1]
 
         # -- Run PRM algorithm
-        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  30, 100)
+        start = time.time()
+        Exgraph = prm(Exgraph, imgHeight, imgWidth, img[i], imgLast,  5, 90)
+
+        end = time.time()
+        total = end - start
+        print("It took:" + str(total) + " seconds")
         print(Exgraph)
 
 
@@ -286,18 +345,23 @@ if __name__ == "__main__":
         nodeList = list(Exgraph.nodes)
         edgeList = list(Exgraph.edges)
 
+        # -- Convert images into color
+        painted_img.append(cv2.cvtColor(img[i], cv2.COLOR_GRAY2BGR))
+
         # -- add nodes
         for j in range(len(nodeList)):
             nodeCoords = (Exgraph.nodes[nodeList[j]]['y'], Exgraph.nodes[nodeList[j]]['x'])
-            cv2.circle(img[i], nodeCoords, 4, (255, 0, 0), -1)
+            cv2.circle(painted_img[i], nodeCoords, 4, (255, 0, 0), -1)
 
         for j in range(len(edgeList)):
             
             currentEdge = edgeList[j]
-            cv2.line(img[i], (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
+            cv2.line(painted_img[i], (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
         
         
-        cv2.imwrite("map_sequences/graphed_sequences/PRM_lifetime_delta_example_" + str(i + 1) + ".png", img[i])
+        cv2.imwrite("map_sequences/graphed_sequences/PRM_lifetime_delta_example_" + str(i + 1) + ".png", painted_img[i])
+
+    
 
     
 

@@ -123,18 +123,69 @@ def add_legal_edges(Exgraph, newNode, radius, img):
 
     return 
 
+# -- This function builds a list of "neighbors" for a given node
+def get_neighborhood(graph, newSample, radius):
+
+    nodeList = list(graph.nodes)
+    neighborhood = []
+
+
+    for i in range(len(nodeList)):
+        if math.dist([graph.nodes[nodeList[i]]['x'], graph.nodes[nodeList[i]]['y']], newSample) <= radius:
+            neighborhood.append(nodeList[i])
+
+    return neighborhood
+
+# -- This function checks if the neighborhood is too large
+def neighborhood_to_big(neighborhood, popLimit = 2):
+
+    if len(neighborhood) > popLimit:
+        return True
+    else:
+        return False
+
+# -- Get the average neighbor of a neighborhood
+def get_average_neighbor(graph, neighborhood):
+    
+    sumX = 0
+    sumY = 0
+
+    for i in range(len(neighborhood)):
+        sumX = sumX + graph.nodes[neighborhood[i]]['x']
+        sumY = sumY + graph.nodes[neighborhood[i]]['y']
+
+    averageX = int(sumX / len(neighborhood))
+    averageY = int(sumY / len(neighborhood))
+
+    return [averageX, averageY]
+
+def mySubtract(imgLast, imgNext, Height, Width):
+    for i in range(Height):
+        for j in range(Width):
+            if np.all(imgLast[i, j] == 254):
+                imgNext[i, j] = 0
 
 
 
+    return imgNext
 
 
 # -- Does the PRM algorithm
-def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40, frontiersample = 5):
+def prm(Exgraph, imgHeight, imgWidth, imgNext, imgLast = None, sampleNum = 100, radius = 40, frontiersample = 5):
     
     graph_unfinished = True
 
     largestNode = getLargestNode(Exgraph)
     newMax = largestNode + sampleNum
+
+    # -- Declare imgDelta outside of if to fix scope potentially?
+    imgDelta = imgNext
+    
+    # -- Create a subtracted image if this isn't the first map
+    if imgLast is not None:
+        imgDelta = mySubtract(imgNext, imgLast, imgHeight, imgWidth)
+    
+    imgDelta = erode_image(imgDelta)
 
     # -- Run a while loop until the graph has the number of nodes specified by sampleNum
     while graph_unfinished:
@@ -146,7 +197,7 @@ def prm(Exgraph, imgHeight, imgWidth, img, sampleNum = 100, radius = 40, frontie
         while not legal_sample:
             
             newSample = generateSample(imgHeight, imgWidth)
-            color = img[int(newSample[0]), int(newSample[1])]
+            color = imgDelta[int(newSample[0]), int(newSample[1])]
 
             if np.all(color == 254):
                 legal_sample = True
@@ -266,13 +317,18 @@ if __name__ == "__main__":
         Exgraph = nx.Graph()
 
         for j in range(8):
+
+            imgLast = None
+        
+            if j > 0:
+                imgLast = img[i-1]
             # -- map 1
             start_timer = time.time()
 
 
             # -- Run PRM algorithm
-            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j],  10, 70)
-            profileEnd(start_timer, 'PRM_profile_data/PRM_frontier_average_profile_sequence' + str(j + 1) + '_n100.txt')
+            Exgraph = prm(Exgraph, imgHeight, imgWidth, img[j], imgLast,  10, 70)
+            profileEnd(start_timer, 'PRM_profile_data/PRM_frontier_delta_average_profile_sequence' + str(j + 1) + '_n100.txt')
             print(Exgraph)
 
     

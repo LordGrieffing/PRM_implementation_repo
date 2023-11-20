@@ -34,12 +34,16 @@ def mySubtract(imgLast, imgNext, Height, Width):
 
 
 
-img1 = cv2.imread("resources/map2.pgm",0)
-img2 = cv2.imread("resources/map3.pgm",0)
+img1 = cv2.imread("resources/map1.pgm",0)
+img2 = cv2.imread("resources/map2.pgm",0)
+
 imgHeight, imgWidth = img1.shape
 
 
 subtracted_img = mySubtract(img1, img2, imgHeight, imgWidth)
+subtracted_img = erode_image(subtracted_img)
+
+subtracted_img = cv2.cvtColor(subtracted_img, cv2.COLOR_GRAY2BGR)
 
 cv2.imshow('My Image',subtracted_img)
 cv2.waitKey(0)
