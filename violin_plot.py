@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 
 
 
-data = pd.read_csv('computation_times.csv')
+data = pd.read_csv('computation_times_frontier_assignment.csv')
 
 grouped = data.groupby(data.Algorithm)
 PRM_data = grouped.get_group("PRM")
 Skeleton_data = grouped.get_group("Skeletonize")
 
-sns.violinplot(data=Skeleton_data, x='Map', y= 'Computation Time', color='goldenrod')
+sns.violinplot(data=data, x='Map', y= 'Computation Time', color='goldenrod')
 
 plt.show()

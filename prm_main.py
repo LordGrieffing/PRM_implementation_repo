@@ -203,7 +203,7 @@ def erode_image(map_array, filter_size = 9):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('resources/map1.pgm')
+    img = cv2.imread('resources/map5.pgm')
     
     # -- build empty graph
     Exgraph = nx.Graph()
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     map_data = erode_image(img)
 
     # -- Run PRM algorithm
-    Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 5, 100)
+    Exgraph = prm(Exgraph, imgHeight, imgWidth, map_data, 50, 100)
     print(Exgraph)
 
     # -- Display graph
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         currentEdge = edgeList[i]
         cv2.line(img, (Exgraph.nodes[currentEdge[0]]['y'], Exgraph.nodes[currentEdge[0]]['x']), (Exgraph.nodes[currentEdge[1]]['y'], Exgraph.nodes[currentEdge[1]]['x']), (0, 0, 255), 1)
 
-    cv2.imwrite('maze5_graphed.png', img)
+    #cv2.imwrite('maze5_graphed.png', img)
 
     # -- Display image
     cv2.imshow('My Image',img)

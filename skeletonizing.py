@@ -11,6 +11,17 @@ import cv2
 import math
 import time
 
+# -- Local imports 
+from laser_emulation import LaserFeature
+
+
+
+class Graph_nodes:
+    def __init__(self):
+        self.id = None
+        self.pts = None
+        self.nPoints = None
+        self.o = None
 
 def erode_image(map_array, filter_size = 9):
     """ Erodes the image to reduce the chances of robot colliding with the wall
@@ -164,6 +175,98 @@ def profileEnd(start, path):
         f.write('\n')
         f.write(str(total))
 
+def assign_frontier_priority_lidar_emulate(graph_nodes,
+                                           map_data_array, 
+                                           offset_size=15,
+                                           laser_sensor_size = 100):
+    """ Priority Assignment for frontier nodes by emulating lidar sensor.
+    Assigns a priority of 1 for frontier nodes and keeps the priority unchanged
+    for other nodes. For each node position, the laser scan is simulated,
+    and if there are pixels that have a value of -1 (unexplored) within the
+    laser scan pixels, the node is considered to a frontier node.
+    """
+    """
+    Steps:
+    1.  Make a template of the pixels that needs to be scanned, considering
+        the center of the laser source is 0,0. The value would be negative
+        and positive. This template would be pasted on the node positions
+        of the graph.
+        SKIP STEP 2
+    2.  Scroll through all the cells in the map, for the cells that are marked
+        as explored and unoccupied (i.e. value of 0), scan the neighboring 
+        elements. If the neighboring elements are unknown, mark them as 
+        'frontier_value_marker'. 
+    3.  Go through all graph node positions on the occupancy grid. For each
+        position, apply the template calculated above, get the pixels scanned
+        from the occupancy grid. If any pixel is a frontier pixel, mark it as
+        a frontier node.
+    """
+    # STEP 1:
+    # create the template for laser
+    lidar_emulation = LaserFeature(map_data_array, 360, 100)
+    # STEP 2:
+    #print ("Number of graph nodes: ", len(graph_nodes))
+    # STEP 3:
+    # To merge step 2 and 3, while scanning through the pixels, if a -1
+    # value is found which is preceded by a 0 value, the node is considered
+    # to be a frontier node.
+    for node in graph_nodes:
+        # -- flag to set the priority
+        flag_priority_set = False
+        # -- get the map coordinate of the node
+        node_coord_i = node.pts[0] # index 1(row) of node point
+        node_coord_j = node.pts[1] # index 2(col) of node point
+        # -- debug print
+        #print ("Node Coord: {}, {}".format(node_coord_i, node_coord_j))
+        # -- get lidar_scanline
+        lidar_scanlines = lidar_emulation.get_laser_data((node_coord_i, node_coord_j))
+        #print ("Shape of lidar_scanlines at node: {} :: {}".format(node.id, lidar_scanlines.shape))
+        # print (lidar_scanlines.shape)
+        # -- loop through the lidar_scanlines, get if there is a unexplored 
+        #    pixel after a free and explored pixel
+        for i in range(0, lidar_scanlines.shape[0]): # resolution
+            #print (map_data_array[tuple(lidar_scanlines[i,0])], end=" ")
+            for j in range(1, lidar_scanlines.shape[1]): # distance
+                cur_idx = tuple(lidar_scanlines[i,j])
+                prev_idx = tuple(lidar_scanlines[i,j-1])
+                cur_val = map_data_array[cur_idx]
+                prev_val = map_data_array[prev_idx]
+                #print (cur_val, end= " ")
+                if cur_val == -1 and prev_val == 0:
+                    # we found a pixel that can be explored if the robot is in node position
+                    #print ("Node priority set to 1")
+                    node.priority  = 1
+                    flag_priority_set = True
+                    break
+                if cur_val == -1 and prev_val == -1:
+                    break
+                if cur_val == 100:
+                    break
+            #print ("\n"+ "-"*50)
+            if flag_priority_set:
+                break
+        #print ("="*100)
+    return graph_nodes
+
+def convert_nodes_messages(g):
+    # -- get all the nodes of the graph
+    nodes = g.nodes.items()
+    
+    # -- declare a message of node
+    # taken from webpage
+    # http://wiki.ros.org/ROS/Tutorials/CustomMessagePublisherSubscriber%28python%29
+    graph_nodes = []
+    for node in nodes:
+        node_msg = Graph_nodes()
+        node_msg.id = int(node[0])
+        node_msg.pts = list(node[1]['pts'].flatten())
+        node_msg.nPoints = node[1]['pts'].shape[0]
+        node_msg.o = list(node[1]['o'])
+        graph_nodes.append(node_msg)
+        # -- initialize priority to 0
+        node_msg.priority = 0 # frontier nodes would be marked as 1 later
+    return graph_nodes
+
 
 
 
@@ -176,34 +279,37 @@ if __name__ == "__main__":
     img = []
 
     for i in range(1):
-        img.append(cv2.imread('maze5.png'))
+        img.append(cv2.imread('resources/map' + str(i+8) + '.pgm', 0))
+        print(i+8)
     
 
-    '''
-    for j in range(8):
+    
+    for j in range(1):
 
         for i in range(100):
             start = time.time()
+            
             map_data = erode_image(img[j])
             map_binary = convert_to_binary(map_data)
 
             
 
             skeleton = data_skeleton(map_binary)
-            #cv2.imshow('My Image', skeleton)
-            #cv2.waitKey(0)
-            #cv2.destroyAllWindows()
+            
 
             graph = run_skeleton_input(skeleton)
-            profileEnd(start, "Skeleton_profile_data/Skeleton_profile_Desktop_map" + str(j + 1) + "_n100.txt")
+            graph_nodes = convert_nodes_messages(graph)
+            frontier_nodes = assign_frontier_priority_lidar_emulate(graph_nodes, map_data)
+            #print(frontier_nodes)
+
+            profileEnd(start, "Skeleton_profile_data/Skeleton_profile_assign_frontier_Desktop_map" + str(j + 8) + "_n100.txt")
             print(graph)
-    '''
+    
     
 
-    
+    '''
     for i in range(1):
 
-        img[i] = cv2.copyMakeBorder(src=img[i], top=15, bottom=15, left=15, right=15, borderType=cv2.BORDER_CONSTANT) 
         map_data = erode_image(img[i])
         map_binary = convert_to_binary(map_data)
 
@@ -214,6 +320,8 @@ if __name__ == "__main__":
 
         graph = run_skeleton_input(skeleton)
         print(graph)
+        frontier_nodes = assign_frontier_priority_lidar_emulate()
+        print(frontier_nodes)
         #img[i] = cv2.cvtColor(img[i], cv2.COLOR_GRAY2BGR)
 
 
@@ -237,6 +345,7 @@ if __name__ == "__main__":
         #cv2.destroyAllWindows()
         #cv2.imwrite("map_sequences/skeleton_graphs/skeleton_map_eroded_" +str(i + 1) + ".png", img[i])
         cv2.imwrite("map_sequences/skeleton_graphs/maze5.png", img[i])
+        '''
     
     
 

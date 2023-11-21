@@ -27,9 +27,8 @@ def erode_image(map_array, filter_size = 1):
 img = []
 
 
-img.append(cv2.imread('resources/map2.pgm'))
-img.append(cv2.imread('map_sequences/graphed_sequences/PRM_lifetime_delta_example_2.png'))
-img.append(cv2.imread('map_sequences/skeleton_graphs/skeleton_map_eroded_2.png'))
+img.append(cv2.imread('map_sequences/map_sequence_5.png'))
+img.append(cv2.imread('map_sequences/skeleton_on_map_5.png'))
 
 imgHeight, imgWidth, channels = img[0].shape
 print("Image Height: " + str(imgHeight))
@@ -38,19 +37,30 @@ print("Image Width: " + str(imgWidth))
 
 
 
-for i in range(3):
-    img[i] = img[i][160:390, 150: 380]
+for i in range(2):
+    img[i] = img[i][125:450, 100:450]
 
-cv2.imwrite('map_sequences/cropped_images/cropped_map2.png', img[0])
-cv2.imwrite('map_sequences/cropped_images/cropped_PRM_map2.png', img[1])
-cv2.imwrite('map_sequences/cropped_images/cropped_Skeleton_map2.png', img[2])
-
+    cv2.imwrite('map_sequences/cropped_images/cropped_map_sequence_5.png', img[0])
+    cv2.imwrite('map_sequences/cropped_images/cropped_skeleton_map_sequence_5.png', img[1])
 
 
-#cv2.imshow('My Image', img[0])
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
 
+
+cv2.imshow('My Image', img[0])
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+
+'''
+img = []
+
+for i in range(8):
+    img.append(cv2.imread('resources/map' + str(i+1) + '.pgm'))
+
+for i in range(8):
+    cv2.imwrite('map_sequences/map' + str(i+1) + '.png', img[i])
+'''
 
 
 
