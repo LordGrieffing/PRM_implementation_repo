@@ -17,6 +17,12 @@ PRM_data = grouped.get_group("PRM")
 Skeleton_data = grouped.get_group("Skeletonize")
 
 ax = sns.barplot(data=data, x='Map', y= 'Computation Time', errorbar='sd', hue= 'Algorithm')
+ax.set_yscale("linear")
+
+ticks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ax.set_yticks(ticks)
+ax.set_yticklabels(ticks)
+
 #sns.lineplot(data=Skeleton_data, x='Map', y= 'Computation Time', errorbar='sd', hue= 'Algorithm')
 #sns.lineplot(data=Skeleton_data, x='Map', y= 'Computation Time', errorbar='sd')
 ax.set(ylabel = 'Seconds')
